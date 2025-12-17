@@ -441,7 +441,6 @@ function fileToBase64(file) {
     reader.readAsDataURL(file);
   });
 }
-});
 
 // Při načtení stránky si stáhni data
 document.addEventListener('DOMContentLoaded', loadData);
