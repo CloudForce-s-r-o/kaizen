@@ -257,8 +257,9 @@ if (searchSpoluautorInput) {
   });
 }
 
-// Konfigurace endpointu
+// Konfigurace endpointů
 const SUBMIT_ENDPOINT = 'https://defaulta577f43ff7b842c9ba9927708e35b6.2b.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/6f95790471b943b79590a8b0b24d6b43/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=rC18d30tVlmxmcSeGxWCaZLM8ShF_S4sRAcSOJY08Uw';
+const FILES_ENDPOINT = 'https://defaulta577f43ff7b842c9ba9927708e35b6.2b.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/092f0182157f40a59df7fa67cfa70a0c/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=KelRdhyKorDieU-3rhFFSseLFnf5Vq88_I68v_m2UlE';
 
 form.addEventListener('submit', async (ev) => {
   ev.preventDefault();
@@ -334,6 +335,7 @@ form.addEventListener('submit', async (ev) => {
   displayData.spoluautor = selectedSpoluautoriNames; // Názvy pro zobrazení
 
   try {
+    // === KROK 1: Odeslání JSON dat ===
     const resp = await fetch(SUBMIT_ENDPOINT, {
       method: 'POST',
       headers: {
@@ -342,40 +344,103 @@ form.addEventListener('submit', async (ev) => {
       body: JSON.stringify(jsonData),
     });
 
-    if (resp.ok) {
-      // Vytvoříme souhrn odeslaných dat
-      let summary = '✅ Děkujeme za odeslání!\n\n📋 Souhrn odeslaných údajů:\n\n';
-      summary += `• Název ZN: ${displayData.nazevZN}\n`;
-      summary += `• Typ návrhu: ${displayData.typNavrhu}\n`;
-      summary += `• Zadavatel: ${displayData.zadavatel}\n`;
-      if (displayData.spoluautor && displayData.spoluautor.length > 0) {
-        summary += `• Spoluautoři: ${displayData.spoluautor.join(', ')}\n`;
-      }
-      summary += `• Oblast: ${displayData.oblast}\n`;
-      summary += `• Středisko: ${displayData.stredisko}\n`;
-      if (displayData.stroj && displayData.stroj.length > 0) {
-        summary += `• Stroje: ${displayData.stroj.join(', ')}\n`;
-      }
-      
-      show(summary, false);
-      
-      // Vyčistíme formulář
-      form.reset();
-      document.getElementById('strojeContainer').innerHTML = '<p style="color:#999;font-style:italic">Nejprve vyberte středisko</p>';
-      document.getElementById('spoluautoriContainer').innerHTML = '<p style="color:#999;font-style:italic">Načítám zaměstnance...</p>';
-      
-      // Po chvíli obnovíme seznamy
-      setTimeout(() => {
-        populateSpoluautory();
-      }, 100);
-    } else {
+    if (!resp.ok) {
       const text = await resp.text();
       show(`❌ Chyba při odesílání.\n\nStatus: ${resp.status} ${resp.statusText}\n\nOdpověď:\n${text}`, true);
+      return;
     }
+
+    // Získáme ID z odpovědi
+    const responseData = await resp.json();
+    const recordId = responseData.id || responseData.ID || responseData;
+    
+    console.log('✅ Návrh odeslán, ID:', recordId);
+
+    // === KROK 2: Odeslání souborů (pokud jsou) ===
+    const fileInput = document.querySelector('input[name="prilohy"]');
+    if (fileInput && fileInput.files && fileInput.files.length > 0) {
+      show('📤 Nahrávám soubory...');
+      
+      // Převedeme soubory na base64
+      const filesData = [];
+      for (let i = 0; i < fileInput.files.length; i++) {
+        const file = fileInput.files[i];
+        const base64 = await fileToBase64(file);
+        filesData.push({
+          name: file.name,
+          contentType: file.type,
+          content: base64
+        });
+      }
+      
+      // Odešleme soubory s ID
+      const filesResp = await fetch(FILES_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          id: recordId,
+          files: filesData
+        }),
+      });
+      
+      if (!filesResp.ok) {
+        console.error('⚠️ Chyba při nahrávání souborů');
+      } else {
+        console.log('✅ Soubory nahrány');
+      }
+    }
+
+    // === KROK 3: Zobrazení souhrnu ===
+    let summary = '✅ Děkujeme za odeslání!\n\n📋 Souhrn odeslaných údajů:\n\n';
+    summary += `• ID návrhu: ${recordId}\n`;
+    summary += `• Název ZN: ${displayData.nazevZN}\n`;
+    summary += `• Typ návrhu: ${displayData.typNavrhu}\n`;
+    summary += `• Zadavatel: ${displayData.zadavatel}\n`;
+    if (displayData.spoluautor && displayData.spoluautor.length > 0) {
+      summary += `• Spoluautoři: ${displayData.spoluautor.join(', ')}\n`;
+    }
+    summary += `• Oblast: ${displayData.oblast}\n`;
+    summary += `• Středisko: ${displayData.stredisko}\n`;
+    if (displayData.stroj && displayData.stroj.length > 0) {
+      summary += `• Stroje: ${displayData.stroj.join(', ')}\n`;
+    }
+    if (fileInput && fileInput.files && fileInput.files.length > 0) {
+      summary += `• Nahráno souborů: ${fileInput.files.length}\n`;
+    }
+    
+    show(summary, false);
+    
+    // Vyčistíme formulář
+    form.reset();
+    document.getElementById('strojeContainer').innerHTML = '<p style="color:#999;font-style:italic">Nejprve vyberte středisko</p>';
+    document.getElementById('spoluautoriContainer').innerHTML = '<p style="color:#999;font-style:italic">Načítám zaměstnance...</p>';
+    
+    // Po chvíli obnovíme seznamy
+    setTimeout(() => {
+      populateSpoluautory();
+    }, 100);
+    
   } catch (err) {
     console.error(err);
     show('❌ Chyba při odesílání.\n\n' + err.message, true);
   }
+});
+
+// Pomocná funkce pro převod souboru na base64
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      // Odstraníme "data:..." prefix a necháme jen base64
+      const base64 = reader.result.split(',')[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 });
 
 // Při načtení stránky si stáhni data
