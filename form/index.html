@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Odeslat data na endpoint</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, Segoe UI, Roboto, Arial;
+      margin: 24px;
+      max-width: 900px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    h1 { color: #333; }
+    label {
+      display: block;
+      margin: 8px 0 4px 0;
+      font-weight: 500;
+      color: #333;
+    }
+    input, textarea, select {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 12px;
+      border: 1px solid #bbb;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 14px;
+    }
+    textarea {
+      resize: vertical;
+    }
+    fieldset {
+      border-radius: 4px;
+    }
+    legend {
+      font-weight: 600;
+      color: #0066cc;
+    }
+    button {
+      margin-top: 12px;
+      padding: 12px 24px;
+      background-color: #0066cc;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    button:hover {
+      background-color: #0052a3;
+    }
+    #result {
+      margin-top: 16px;
+      white-space: pre-wrap;
+      padding: 12px;
+      background-color: #f5f5f5;
+      border-left: 4px solid #0066cc;
+      border-radius: 4px;
+      display: none;
+    }
+    #result.show {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <h1>Kaizen - Formulář návrhu zlepšení</h1>
+
+  <div id="loadingStatus" style="padding:12px;background-color:#fff3cd;border:1px solid #ffc107;border-radius:4px;margin-bottom:16px;display:block">
+    ⏳ Načítám data z Power Automate...
+  </div>
+
+  <form id="dataForm">
+    <fieldset style="margin-bottom:16px;padding:12px;border:1px solid #ddd">
+      <legend>Základní informace</legend>
+      
+      <label>Název návrhu (Název ZN)
+        <input name="nazevZN" required />
+      </label>
+
+      <label>Typ návrhu
+        <select name="typNavrhu" required>
+          <option value="">-- Zvolte --</option>
+          <option value="Zlepšovací návrh">Zlepšovací návrh</option>
+          <option value="Cílený zlepšovací návrh">Cílený zlepšovací návrh</option>
+          <option value="Týmový zlepšovací návrh">Týmový zlepšovací návrh</option>
+        </select>
+      </label>
+
+      <label>Zadavatel
+        <select id="zadavatel" name="zadavatel" required>
+          <option value="">-- Zvolte zadavatele --</option>
+        </select>
+      </label>
+
+      <label>Spoluautoři (lze vybrat více)</label>
+      <input type="text" id="searchSpoluautor" placeholder="🔍 Vyhledat spoluautora..." style="margin-bottom:8px">
+      <div id="spoluautoriContainer" style="max-height:200px;overflow-y:auto;border:1px solid #ddd;padding:8px;border-radius:4px;background-color:#fafafa">
+        <p style="color:#999;font-style:italic">Načítám zaměstnance...</p>
+      </div>
+    </fieldset>
+
+    <fieldset style="margin-bottom:16px;padding:12px;border:1px solid #ddd">
+      <legend>Popis situace</legend>
+      
+      <label>Popis stávající situace
+        <textarea name="stavajiciSituace" rows="5" required></textarea>
+      </label>
+
+      <label>Popis navrhované situace
+        <textarea name="navrhovanaSituace" rows="5" required></textarea>
+      </label>
+    </fieldset>
+
+  <fieldset style="margin-bottom:16px;padding:12px;border:1px solid #ddd">
+    <legend>Technické parametry</legend>
+      
+      <label>Oblast
+        <select id="oblast" name="oblast" required>
+          <option value="">-- Zvolte oblast --</option>
+        </select>
+      </label>
+
+      <label>Středisko
+        <select id="stredisko" name="stredisko" required>
+          <option value="">-- Zvolte středisko --</option>
+        </select>
+      </label>
+
+      <label>Stroj / Zařízení (lze vybrat více)</label>
+      <input type="text" id="searchStroj" placeholder="🔍 Vyhledat stroj..." style="margin-bottom:8px">
+      <div id="strojeContainer" style="max-height:300px;overflow-y:auto;border:1px solid #ddd;padding:8px;border-radius:4px;background-color:#fafafa">
+        <p style="color:#999;font-style:italic">Načítám stroje...</p>
+      </div>
+    </fieldset>
+
+    <button type="submit" style="background-color:#0066cc;color:white;border:none;cursor:pointer;font-size:16px">Odeslat návrh</button>
+  </form>
+
+  <div id="result" aria-live="polite"></div>
+
+  <script src="./app.js"></script>
+</body>
+</html>
